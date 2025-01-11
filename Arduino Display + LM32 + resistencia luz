@@ -1,0 +1,119 @@
+#include <LiquidCrystal_I2C.h>
+
+bool estado = false;
+bool INTERRUMPIO_PIN2 = false;
+#define boton 2
+#define PIN_SWITCH 8
+#define led_verde 6
+#define led_rojo 5
+#define led_azul 10
+#define fan 4
+#define pote A0
+#define TRUE 1
+#define FALSE 0
+#define sensor_lm35 A0
+#define sensor_ir 9
+#define LDR A1
+#define LED_RED_ON digitalWrite(led_rojo,FALSE);
+#define LED_RED_OFF digitalWrite(led_rojo,TRUE);
+#define LED_GREEN_ON digitalWrite(led_verde,FALSE);
+#define LED_GREEN_OFF digitalWrite(led_verde,TRUE);
+#define ESPERA_2 delay(2000);
+#define ESPERA_10 delay(10000);
+LiquidCrystal_I2C lcd(0x27,16,2); // llamamos una instancia de LCD
+float ac_temp=0;
+float temp = 0;
+const float coeficiente = 0.4887585532746823; // 5000 / 1023 / 10 (10mV/°C) es una constante
+
+
+
+void isr_pulsador(){
+  INTERRUMPIO_PIN2 = !INTERRUMPIO_PIN2;
+  //digitalWrite(led_azul, FALSE);
+}
+
+void funcion_semaforo(){
+  LED_RED_ON
+  LED_GREEN_OFF
+  ESPERA_2
+  LED_GREEN_ON
+  LED_RED_OFF
+  ESPERA_2
+  Serial.println(INTERRUMPIO_PIN2);
+  if(INTERRUMPIO_PIN2 == TRUE){
+    Serial.println("alquien tiene q cruzar");
+    LED_RED_ON
+    LED_GREEN_OFF
+    ESPERA_10
+    INTERRUMPIO_PIN2 = FALSE;
+  }
+}
+
+
+void setup(void) {
+  // put your setup code here, to run once:
+  pinMode(led_verde, OUTPUT);
+  pinMode(PIN_SWITCH, INPUT_PULLUP);
+  pinMode(led_rojo, OUTPUT);
+  pinMode(sensor_ir, INPUT);
+  pinMode(fan, OUTPUT);
+  LED_GREEN_OFF
+  LED_RED_OFF
+  // Iniciamos el LCD
+  lcd.init();
+  lcd.noBacklight();
+
+  pinMode(boton, INPUT_PULLUP); // el pin 8 es entrada a 5V negada
+  Serial.begin(9600);
+  Serial.println(digitalRead(9));
+  // vamos a configurar la interrupcion
+  attachInterrupt(digitalPinToInterrupt(2), isr_pulsador, FALLING);
+
+  lcd.setCursor(0, 0);
+  lcd.print("LM35:");
+}
+
+void loop(void) {
+  // si la temp es menor de 30°C prende el verde... si es mayor que 32, prende el cooler y dentro del rango, prenda rojo
+  for(int i=0; i<100; i++){ //saca un promedio de la temperatura que mide 100 veces
+    ac_temp =  ac_temp + analogRead(sensor_lm35) * coeficiente;
+    delay(10);
+  }
+  temp = ac_temp/100;
+  ac_temp=0;
+  analogRead(LDR);
+  lcd.setCursor(6, 0);
+  lcd.print(temp);
+  lcd.print("C      ");
+  //delay(400);
+  lcd.setCursor(0, 1);
+  if(analogRead(LDR) < 350){
+    lcd.print("Oscuridad");
+  }else lcd.print("Luz      ");
+  if(temp < 30){
+    LED_GREEN_ON
+    LED_RED_OFF
+    digitalWrite(fan,TRUE); // al estar a menos de 30 grados apaga cooler
+  }
+  if(temp >= 30){
+    LED_GREEN_OFF
+    LED_RED_ON
+    digitalWrite(fan,TRUE); //apaga cooler
+  }
+  if(temp > 32){
+    digitalWrite(fan,FALSE); // al estar a mas de 32 grados prende cooler
+    LED_GREEN_OFF
+  }
+  if(digitalRead(PIN_SWITCH) == TRUE){
+    lcd.backlight();
+    lcd.setCursor(13, 1);
+    lcd.print("ON ");
+  }else{
+    lcd.setCursor(13, 1);
+    lcd.print("OFF");
+    lcd.noBacklight();
+  }
+}
+  //Serial.println(analogRead(sensor_lm35));
+  // put your main code here, to run repeatedly:
+  //funcion_semaforo();
