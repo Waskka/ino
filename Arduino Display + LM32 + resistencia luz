@@ -12,7 +12,6 @@ bool INTERRUMPIO_PIN2 = false;
 #define TRUE 1
 #define FALSE 0
 #define sensor_lm35 A0
-#define sensor_ir 9
 #define LDR A1
 #define LED_RED_ON digitalWrite(led_rojo,FALSE);
 #define LED_RED_OFF digitalWrite(led_rojo,TRUE);
@@ -55,7 +54,6 @@ void setup(void) {
   pinMode(led_verde, OUTPUT);
   pinMode(PIN_SWITCH, INPUT_PULLUP);
   pinMode(led_rojo, OUTPUT);
-  pinMode(sensor_ir, INPUT);
   pinMode(fan, OUTPUT);
   LED_GREEN_OFF
   LED_RED_OFF
